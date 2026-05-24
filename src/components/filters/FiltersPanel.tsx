@@ -3,7 +3,6 @@ import type { Product } from '../../types/product'
 import { BrandFilter } from './BrandFilter'
 import { CategoryFilter } from './CategoryFilter'
 import { PriceFilter } from './PriceFilter'
-import { SidebarSearch } from './SidebarSearch'
 
 interface Props {
   query: string
@@ -16,10 +15,8 @@ interface Props {
 
   brands: string[]
 
-  // products for brand filter
   products: Product[]
 
-  // products for category filter
   categoryProducts: Product[]
 
   onQueryChange: (q: string) => void
@@ -50,14 +47,33 @@ export function FiltersPanel(
     props.maxPrice !== null ||
     props.brands.length > 0
 
+  function closeSidebar() {
+    document
+      .querySelector('.filters')
+      ?.classList.remove(
+        'is-open'
+      )
+
+    document
+      .querySelector(
+        '.mobile-sidebar-overlay'
+      )
+      ?.classList.add(
+        'hidden'
+      )
+  }
+
   return (
     <aside className="filters">
-      <SidebarSearch
-        query={props.query}
-        onChange={
-          props.onQueryChange
-        }
-      />
+      {/* CLOSE BUTTON */}
+      <button
+        type="button"
+        className="sidebar-close-btn"
+        aria-label="Close filters"
+        onClick={closeSidebar}
+      >
+        ✕
+      </button>
 
       <CategoryFilter
         value={props.category}

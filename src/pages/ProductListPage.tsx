@@ -162,7 +162,26 @@ export function ProductListPage() {
     )
 
   return (
+    
     <div className="layout">
+  <div
+  className="mobile-sidebar-overlay hidden"
+  onClick={() => {
+    document
+      .querySelector('.filters')
+      ?.classList.remove(
+        'is-open'
+      )
+
+    document
+      .querySelector(
+        '.mobile-sidebar-overlay'
+      )
+      ?.classList.add(
+        'hidden'
+      )
+  }}
+/>
       <FiltersPanel
         query={filters.query}
         category={

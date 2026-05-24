@@ -47,8 +47,6 @@ export function StarRating({
     else stars.push('empty')
   }
 
-  console.log({ value, stars })
-
   return (
     <span
       className={`rating rating-${size}`}
