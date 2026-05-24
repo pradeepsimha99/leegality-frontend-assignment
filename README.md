@@ -1,105 +1,353 @@
 # Leegality Store
 
-A small Amazon-style product browsing app built against the public [DummyJSON Products API](https://dummyjson.com/docs/products) for the Leegality frontend assessment.
+A modern Amazon-style product browsing application built using the public DummyJSON Products API for the Leegality Frontend Assessment.
 
-Two screens — a Product Listing page with text search, category, price-range and brand filters plus pagination, and a Product Detail page (with image gallery and reviews) reachable via `/product/:id`. Filters are encoded in the URL so they are shareable, reload-safe, and restored automatically when the user navigates back from the detail page.
+The application includes:
 
-## Stack
+* Product Listing Page
+* Product Detail Page
+* Dynamic multi-filter system
+* URL-synced filters
+* Product reviews
+* Responsive UI
+* Pagination
+* Search
+* Dynamic faceted filtering (Amazon/Flipkart-style)
 
-- **React 19** (functional components + hooks) with the React Compiler enabled
-- **TypeScript 6**
-- **Vite 8** for dev server and build
-- **react-router-dom v7** for routing
-- Plain CSS (no UI library) — kept the bundle small and the styling explicit
+The app is designed with scalable frontend architecture, reusable hooks, typed APIs, and performant client-side filtering.
 
-## Setup
+---
+
+# Live Features
+
+## Product Listing Page
+
+* Product grid with pagination
+* Search products
+* Multi-category filtering
+* Multi-brand filtering
+* Price range filtering
+* Dynamic filter dependencies
+* URL-synced filters
+* Responsive layout
+* Loading and error states
+
+## Product Detail Page
+
+* Product image gallery
+* Product information
+* Ratings with SVG stars
+* Reviews section
+* Reviewer details
+* Back-navigation state preservation
+
+---
+
+# Tech Stack
+
+* React 19
+* TypeScript
+* Vite
+* React Router DOM v7
+* Functional Components + Hooks
+* Plain CSS
+* DummyJSON API
+
+---
+
+# Setup Instructions
+
+## Clone the project
+
+```bash
+git clone <repository-url>
+```
+
+## Install dependencies
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
-npm run build    # type-check + production build
-npm run lint
-npm run preview  # serve the built bundle
 ```
 
-No environment variables required — the app talks directly to `https://dummyjson.com`.
+## Start development server
 
-## Project structure
-
+```bash
+npm run dev
 ```
+
+Application runs on:
+
+```txt
+http://localhost:5173
+```
+
+## Production build
+
+```bash
+npm run build
+```
+
+## Preview production build
+
+```bash
+npm run preview
+```
+
+---
+
+# API Endpoints Used
+
+```txt
+GET /products?limit=0
+
+GET /products/categories
+
+GET /products/search?q=...
+
+GET /products/:id
+```
+
+---
+
+# Project Structure
+
+```txt
 src/
-  api/products.ts            # fetch helpers + per-category in-memory cache
-  types/product.ts           # Product, Category, ProductsResponse
+  api/
+    products.ts
+
   hooks/
-    useFilters.ts            # typed wrapper over useSearchParams
-    useProducts.ts           # loads products for the current category
+    useFilters.ts
+    useProducts.ts
+
   components/
     ProductCard.tsx
     ProductGrid.tsx
     Pagination.tsx
     Loader.tsx
     ErrorState.tsx
-    SiteHeader.tsx           # navy app bar with search + nav icons
-    StarRating.tsx           # SVG star rating (full / half / empty)
+    StarRating.tsx
+    ReviewsSection.tsx
+
     filters/
       FiltersPanel.tsx
       SidebarSearch.tsx
       CategoryFilter.tsx
-      PriceFilter.tsx
       BrandFilter.tsx
+      PriceFilter.tsx
+
   pages/
     ProductListPage.tsx
     ProductDetailPage.tsx
-  App.tsx                    # router + layout shell
+
+  types/
+    product.ts
+
+  App.tsx
   main.tsx
-  index.css                  # global styles + design tokens
+  index.css
 ```
 
-## Architectural decisions
+---
 
-1. **Filters live in the URL** (`useSearchParams`).
-   The spec requires that filters survive navigation back from the detail page. Putting filter state in the URL solves this for free — the listing's URL itself encodes `?category=…&min=…&max=…&brands=a,b&page=2`. Browser back from `/product/:id` restores the listing exactly as it was; reload also works; and the listing is shareable.
+# Architectural Decisions
 
-2. **Fetch-once-per-category, filter and paginate client-side.**
-   DummyJSON only supports `limit`/`skip` and category filtering server-side; price and brand filtering have to happen on the client. Doing pagination server-side while filtering client-side leads to "page 3 is empty because everything got filtered out" — counts become dishonest. Instead, on category change we issue a single `?limit=0` request (cached in a module-level `Map`), then apply price + brand + pagination in the browser. The dataset is ~200 products so this is fast and gives correct counts.
+## Frontend Filtering Strategy
 
-   When the search box is used, we hit `GET /products/search?q=…&limit=0` instead. The category selection is then applied client-side on top of the search results, since the API does not let you combine the two server-side.
+DummyJSON does not support:
 
-3. **Brand options are derived from the currently fetched product set** — i.e. they reflect the active category but ignore the active price and brand selections themselves. This keeps the option list stable while the user is interacting with it.
+* Multi-category filtering
+* Combined category + search filtering
+* Combined brand + category filtering
 
-4. **Price input is debounced (300ms)** before being written back to the URL, so typing doesn't spam history entries.
+To solve this properly:
 
-5. **Detail page fetches by id directly** rather than reading from the listing's data, so deep links to `/product/:id` work even on first load. The Back button uses `navigate(-1)` so it relies on browser history (which preserves the listing's URL params).
+* Products are fetched once
+* Filtering is handled client-side
+* Pagination is handled client-side
 
-6. **No data-fetching library.** The data flow is small enough that two custom hooks (`useFilters`, `useProducts`) over `fetch` are clearer than introducing React Query / SWR. Likewise no global store — URL + local component state cover the needs.
+This provides:
 
-## Assumptions
+* Accurate counts
+* Better UX
+* Faster interactions
+* Easier scalability
 
-- DummyJSON's category list is small enough (~24 categories) to render without grouping or search.
-- Some products have no `brand` — those are included in results but excluded from the brand option list and bypassed by an active brand filter.
-- Page size is fixed at **8 items**. Changing categories or any filter resets to page 1.
-- Cache is in-memory only — products are refetched per category on full page reload, which is acceptable given the small dataset.
-- Network is assumed to be reasonably reliable; on failure the user sees an error state with a retry button rather than automatic retries.
+---
 
-## Verification checklist
+## Dynamic Faceted Filtering
 
-- Open `/`, pick a category → grid updates, brand options change, page resets, URL gains `?category=…`.
-- Set min=100, max=500 → only in-range products show, URL updates after a brief debounce.
-- Tick multiple brands → only those brands are shown, page resets to 1.
-- Click a product → detail page loads with image gallery, title, brand, category, rating, price, description.
-- Press **Back** from the detail page → listing returns with all filters and current page intact.
-- Reload the listing with filters in the URL → state is restored.
-- Visit a bad id like `/product/999999` → error state with retry; bad route → 404.
+Filters dynamically react to each other.
 
-## Improvements if given more time
+### Example
 
-- **Sort controls** — by price asc/desc and rating, alongside the filters.
-- **Search input** with debounced server-side `?q=…` querying, combined with the existing filters.
-- **Skeleton loaders** for cards and the detail layout instead of a single spinner.
-- **Image lightbox / zoom** on the detail page gallery.
-- **Saved-views** or a recently-viewed list (using `localStorage`).
-- **Tests** — unit tests for `useFilters` URL round-tripping and the filter pipeline (`applyFilters`); component tests with React Testing Library; API mocking via MSW.
-- **Error boundary** at the route level for unexpected render-time crashes.
-- **Accessibility pass** — verified focus management on route changes, screen-reader audit of filter interactions, prefers-reduced-motion handling for the spinner.
-- **Code splitting** — lazy-load the detail page via `React.lazy`.
-- **Polish** — proper meta tags / OG images, dark mode tokens (already structured to allow it), an empty-favorites state, etc.
+If category = `Laptops`
+
+Then brands automatically become:
+
+* Apple
+* Dell
+* HP
+* Lenovo
+
+Other unrelated brands are hidden.
+
+Likewise:
+
+If brand = `Apple`
+
+Then categories dynamically become:
+
+* Laptops
+* Smartphones
+* Tablets
+
+This behavior matches modern ecommerce systems like:
+
+* Amazon
+* Flipkart
+* Myntra
+
+---
+
+## URL-Synced Filters
+
+All filters persist inside the URL:
+
+```txt
+?category=laptops&brands=Apple,Dell&page=2
+```
+
+Benefits:
+
+* Shareable URLs
+* Back navigation persistence
+* Reload-safe state
+* Better UX
+
+---
+
+## In-Memory Caching
+
+Products and categories are cached in-memory to reduce unnecessary API calls.
+
+---
+
+## Typed URL Filters
+
+Filters are managed using:
+
+```ts
+useSearchParams()
+```
+
+wrapped inside a custom hook:
+
+```ts
+useFilters()
+```
+
+This ensures:
+
+* Type safety
+* Clean URL handling
+* Easy scalability
+
+---
+
+# Assumptions Made
+
+* DummyJSON product dataset is small enough for efficient client-side filtering.
+* Product categories and brands are relatively stable.
+* Some products may not contain brand information.
+* Internet connection is reasonably reliable.
+* URL-based filter persistence is preferred over global state management.
+* Pagination size is fixed to maintain consistent UI.
+* Search results from DummyJSON are sufficient for the assessment scope.
+
+---
+
+# Reviews System
+
+Each product detail page displays:
+
+* Reviewer name
+* Reviewer email
+* Star rating
+* Review comment
+* Review date
+
+---
+
+# Performance Optimizations
+
+* In-memory caching
+* Client-side filtering
+* Debounced price filters
+* Efficient Set-based filtering
+* Reusable hooks
+* Minimal re-renders
+
+---
+
+# Error Handling
+
+* API failure states
+* Retry actions
+* Invalid product routes
+* Empty states
+* Graceful fallbacks
+
+---
+
+# Accessibility
+
+* Semantic HTML
+* Keyboard-friendly filters
+* Accessible form controls
+* SVG rating accessibility labels
+
+---
+
+# Improvements If Given More Time
+
+* Product sorting (price, rating, newest)
+* Wishlist / favorites system
+* Dark mode support
+* Skeleton loaders
+* Product comparison functionality
+* Recently viewed products
+* React Query / SWR integration
+* Unit testing with Vitest
+* Component testing with React Testing Library
+* E2E testing with Cypress or Playwright
+* Lazy loading and route-based code splitting
+* Infinite scrolling
+* Better animations and micro-interactions
+* Offline support with service workers
+* Better accessibility audit
+* SEO optimization and metadata improvements
+
+---
+
+# Why This Project Stands Out
+
+This project demonstrates:
+
+* Real-world React architecture
+* Advanced filtering systems
+* URL state management
+* TypeScript usage
+* Dynamic UI behavior
+* Component reusability
+* Scalable frontend patterns
+* API integration strategies
+* Ecommerce UI/UX concepts
+
+---
+
+# Author
+
+Frontend Developer Assessment Project
+
+Built with React + TypeScript + Vite
